@@ -1,0 +1,5 @@
+*.spec linguist-language=Python
+KeyloggerFinder.spec linguist-language=Python
+releases/** linguist-vendored
+screenshots/*.png linguist-documentation
+reports/.gitkeep linguist-documentation
