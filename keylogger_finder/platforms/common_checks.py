@@ -7,7 +7,24 @@ import psutil
 from ..finding import Finding
 from ..signatures import KNOWN_KEYLOGGER_NAMES, SUSPICIOUS_KEYWORDS
 
-OWN_PID = os.getpid()
+
+def _own_pids() -> set:
+    """Return PIDs of this process and all its ancestors (covers PyInstaller bootloader)."""
+    pids: set = set()
+    try:
+        proc: psutil.Process | None = psutil.Process(os.getpid())
+        while proc is not None:
+            pids.add(proc.pid)
+            try:
+                proc = proc.parent()
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                break
+    except Exception:
+        pass
+    return pids
+
+
+OWN_PIDS = _own_pids()
 
 TEMP_MARKERS = (
     "/tmp/",
@@ -33,7 +50,7 @@ def check_known_signatures() -> list:
             info = proc.info
         except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
             continue
-        if info.get("pid") == OWN_PID:
+        if info.get("pid") in OWN_PIDS:
             continue
         haystack = _process_haystack(info)
         if not haystack.strip():
@@ -57,7 +74,7 @@ def check_suspicious_locations() -> list:
     findings = []
     for proc in psutil.process_iter(["pid", "name", "exe"]):
         try:
-            if proc.info.get("pid") == OWN_PID:
+            if proc.info.get("pid") in OWN_PIDS:
                 continue
             exe = proc.info.get("exe") or ""
         except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
@@ -83,7 +100,7 @@ def check_suspicious_keywords() -> list:
             info = proc.info
         except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
             continue
-        if info.get("pid") == OWN_PID:
+        if info.get("pid") in OWN_PIDS:
             continue
         haystack = _process_haystack(info)
         if not haystack.strip():
