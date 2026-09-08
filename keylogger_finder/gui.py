@@ -32,6 +32,7 @@ _BORDER  = "#334155"
 _ACCENT  = "#38bdf8"
 _SEL_BG  = "#1e3a5f"
 
+
 class KeyloggerFinderApp(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
@@ -230,8 +231,7 @@ class KeyloggerFinderApp(tk.Tk):
             wraplength=700,
             justify="left",
             padx=8,
-            pady=(0, 6),
-        ).pack(anchor="w", fill="x")
+        ).pack(anchor="w", fill="x", pady=(0, 6))
 
     def _start_scan(self) -> None:
         if self._scanning:
@@ -324,9 +324,11 @@ class KeyloggerFinderApp(tk.Tk):
         _json_path, text_path = save_report(self._last_result)
         messagebox.showinfo("Report saved", f"Saved to:\n{text_path}")
 
+
 def main() -> None:
     app = KeyloggerFinderApp()
     app.mainloop()
+
 
 if __name__ == "__main__":
     main()
