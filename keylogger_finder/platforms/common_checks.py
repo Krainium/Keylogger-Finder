@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import os
+
 import psutil
 
 from ..finding import Finding
 from ..signatures import KNOWN_KEYLOGGER_NAMES, SUSPICIOUS_KEYWORDS
+
+OWN_PID = os.getpid()
 
 TEMP_MARKERS = (
     "/tmp/",
@@ -13,11 +17,13 @@ TEMP_MARKERS = (
     "windows\\temp",
 )
 
+
 def _process_haystack(info: dict) -> str:
     name = info.get("name") or ""
     exe = info.get("exe") or ""
     cmdline = " ".join(info.get("cmdline") or [])
     return " ".join([name, exe, cmdline]).lower()
+
 
 def check_known_signatures() -> list:
     findings = []
@@ -26,6 +32,8 @@ def check_known_signatures() -> list:
         try:
             info = proc.info
         except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            continue
+        if info.get("pid") == OWN_PID:
             continue
         haystack = _process_haystack(info)
         if not haystack.strip():
@@ -44,10 +52,13 @@ def check_known_signatures() -> list:
                 break
     return findings
 
+
 def check_suspicious_locations() -> list:
     findings = []
     for proc in psutil.process_iter(["pid", "name", "exe"]):
         try:
+            if proc.info.get("pid") == OWN_PID:
+                continue
             exe = proc.info.get("exe") or ""
         except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
             continue
@@ -63,6 +74,7 @@ def check_suspicious_locations() -> list:
             )
     return findings
 
+
 def check_suspicious_keywords() -> list:
     findings = []
     seen_pids = set()
@@ -70,6 +82,8 @@ def check_suspicious_keywords() -> list:
         try:
             info = proc.info
         except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            continue
+        if info.get("pid") == OWN_PID:
             continue
         haystack = _process_haystack(info)
         if not haystack.strip():
@@ -89,6 +103,7 @@ def check_suspicious_keywords() -> list:
                 )
                 break
     return findings
+
 
 CHECKS = [
     ("Known keylogger signatures", check_known_signatures),
